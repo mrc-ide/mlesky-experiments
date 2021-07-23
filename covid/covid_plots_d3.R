@@ -9,22 +9,14 @@ library(grid)
 library(gridExtra)
 
 
-# Figure 5
 
-# Read mlesky files
-analysis_no_covar <- "covid/analysis_no_covar.rds"
-analysis_covar_OxCGRT <- "covid/analysis_covar_OxCGRT.rds"
-
-# Read sample dates
-tree_info <- readRDS("covid/sample_dates.rds")
-datesdf <- data.frame(dates = as.Date(tree_info[[1]]$dates_all_trees))
-
-# Function to extract key parameters from mlesky dfs
+#' Function to extract key parameters from mlesky dfs
+#' @param ofn Name of mlesky output RDS file to extract
 extract_outcomes_mlesky <- function(ofn) {
   tN = readRDS(ofn)
   taxis_global = tN$time
   covar = "ContainmentHealthIndex"
-
+  
   q_ne = t(apply( tN$ne, 1, function(x) quantile( na.omit(x), c(.5, .025, .975 )) ))
   gr =  apply( tN$ne, 2, function(x) c(exp( diff(log(x)) )^6.5, NA)  ) 
   q_gr = t( apply( gr, 1, function(x) quantile( na.omit(x), c(.5, .025, .975 )) ) )
@@ -38,6 +30,17 @@ extract_outcomes_mlesky <- function(ofn) {
     beta = data.frame(value = unname(tN$beta), covar = covar)
   ))
 }
+
+
+# Figure 5
+
+# Read mlesky files
+analysis_no_covar <- "covid/analysis_no_covar.rds"
+analysis_covar_OxCGRT <- "covid/analysis_covar_OxCGRT.rds"
+
+# Read sample dates
+tree_info <- readRDS("covid/sample_dates.rds")
+datesdf <- data.frame(dates = as.Date(tree_info[[1]]$dates_all_trees))
 
 
 # Extract analysis no covar
@@ -149,10 +152,12 @@ ggsave( plot = P0, file = paste0('covid/England_national_lockdown.pdf'), width =
 
 # Figure 6
 
+# Extract mlesky file
 mlesky_files = list.files()[grep("Containment", list.files())]
 out <- lapply(mlesky_files, extract_outcomes_mlesky, compare = "lineage", lag = T)
 
 
+# extract beta
 beta = lapply(out, function(x) x$beta)
 beta = lapply(beta, function(x) {
   y = t(x)
@@ -169,19 +174,21 @@ for(i in 1:length(mlesky_files)) {
   beta[[i]]$lag = as.numeric(lag)
 }
 
-
-betadf_Stringency = as.data.frame(do.call(rbind, beta))
-betadf_Stringency$national_ContainmentHealthIndex = as.numeric(as.character(betadf_Stringency$national_ContainmentHealthIndex ))
-betadf_Stringency$index = "Stringency"
-names(betadf_Stringency) = c("value", "lineage", "lag", "index")
-betadf = betadf_Stringency
+# merge analyses and make into long format
+betadf_Containment = as.data.frame(do.call(rbind, beta))
+betadf_Containment$national_ContainmentHealthIndex = as.numeric(as.character(betadf_Containment$national_ContainmentHealthIndex ))
+betadf_Containment$index = "Containment"
+names(betadf_Containment) = c("value", "lineage", "lag", "index")
+betadf = betadf_Containment
 betadf_melted = reshape2::melt(betadf, id.vars = c("lineage", "index", "value", "lag"))
 
 
-
+# plot
 bpl = ggplot(betadf_melted, aes(x = as.factor(lag), y = value)) + facet_wrap(~lineage, nrow = 1) + #geom_boxplot() + 
   theme_bw() + labs(y = "beta") + geom_hline(yintercept = 0, linetype = "dotted")+
   theme(axis.text=element_text(size=16),       axis.title=element_text(size=24), strip.text = element_blank())+
   stat_summary(fun.data = quantiles_95, geom="boxplot", fill = "grey", alpha = 0.4) + labs(x = "Time delay (days)")
 bpl
+
+# saving plot
 ggsave(bpl, filename = paste0("covid_covar.pdf"), width = 12)
