@@ -2,8 +2,13 @@ library( ape )
 library( lubridate )
 library( glue )
 library( mlesky )
-source( '/home/erik/git/mlesky/R/mlesky.R' )
 library( treedater ) 
+require(ggplot2)
+require(lubridate)
+library(cowplot)
+library(grid)
+library(gridExtra)
+
 
 LAGS = seq(-28, 28, by=7)
 NCPU = 6
@@ -74,8 +79,8 @@ run_mlesky <- function(tre, subn = NULL, lag = 0, ktre = 0)
 		, res = RES
 		, sampleTimes = sts
 		, NeStartTimeBeforePresent = max( sts ) -  decimal_date( as.Date( '2020-01-30' ))# min( cdata$time )
-		, formula_order = 1
 		, model = 1
+		, formula_order = 1
 		, formula = ~ national_ContainmentHealthIndex
 		, data = .cdata
 	)
@@ -91,8 +96,13 @@ run_mlesky <- function(tre, subn = NULL, lag = 0, ktre = 0)
 }
 
 
-dir.create( 'g2.150' )
-dir.create( 'g2' )
+PATH = 'g2' 
+PATH150 = 'g2.150' 
+PATH1000 = 'g2.1000' 
+
+dir.create( PATH1000 )
+dir.create( PATH150 )
+dir.create( PATH )
 
 # whole tree, no covariates
 parallel::mclapply( seq_along(tres), function(k){
@@ -132,8 +142,16 @@ parallel::mclapply( seq_along(tres), function(k){
 	sg = run_mlesky( tres[[k]], subn = 150, lag = bestlag  , ktre = k  )
 	0
 }, mc.cores = NCPU )
-
-
+###1000
+parallel::mclapply( seq_along(tres), function(k){
+	sg = run_mlesky( tres[[k]], subn = 1000, lag = NA  , ktre = k  )
+	0
+}, mc.cores = NCPU )
+## with lag 
+parallel::mclapply( seq_along(tres), function(k){
+	sg = run_mlesky( tres[[k]], subn = 1000, lag = bestlag  , ktre = k  )
+	0
+}, mc.cores = NCPU )
 
 ## whole tree with lag 
 parallel::mclapply( seq_along(tres), function(k){
@@ -148,17 +166,10 @@ parallel::mclapply( seq_along(tres), function(k){
 
 # figures
 
-require(ggplot2)
-require(lubridate)
-library(cowplot)
-library(grid)
-library(gridExtra)
-
 DAXIS <-  seq( as.Date('2020-01-30'), as.Date('2020-05-01'), by = 1)
 TAXIS <- decimal_date( DAXIS )
 LAGS = seq(-28, 28, by=7)
-PATH = 'g2' 
-PATH150 = 'g2.150' 
+
 
 # cor plot 
 cordf <- do.call( rbind, lapply( 1:ncol(cormat), function(i){
@@ -221,7 +232,6 @@ pne = ggplot( aes(x = as.Date( date_decimal( time)), y = y,  ymin = ymin, ymax =
 
 
 ## with n150 
-
 fns = list.files( path= 'g2.150', patt = paste0('^.*\\.', bestlag, '\\.rds$'), full.name=TRUE )	
 nemat = sapply( fns, function(fn){
 	f = readRDS( fn )
@@ -262,6 +272,48 @@ pne150 = ggplot( aes(x = as.Date( date_decimal( time)), y = y,  ymin = ymin, yma
   scale_y_log10() 
 
 
+## with 1000 
+fns = list.files( path= PATH1000, patt = paste0('^.*\\.', bestlag, '\\.rds$'), full.name=TRUE )	
+nemat = sapply( fns, function(fn){
+	f = readRDS( fn )
+	approx( f$time, f$ne , rule=1, xout = TAXIS)$y
+})
+qq = apply( nemat, 1, function(x) quantile( na.omit(x), c( .025, .5, .975 )))
+dg2.1000 <- data.frame( time = TAXIS, ymin = qq[1, ], ymax = qq[3, ], y  = qq[2, ], analysis = 'With covariate' )
+
+fns = list.files( path= PATH1000, patt = paste0('^.*\\.', 'nocovar', '\\.rds$'), full.name=TRUE )	
+nemat = sapply( fns, function(fn){
+	f = readRDS( fn )
+	approx( f$time, f$ne , rule=1, xout = TAXIS)$y
+})
+qq = apply( nemat, 1, function(x) quantile( na.omit(x), c( .025, .5, .975 )))
+dg2_nocovar.1000 <- data.frame( time = TAXIS, ymin = qq[1,], ymax = qq[3,], y  = qq[2,], analysis = 'Without' )
+dne1000 = rbind( dg2.1000, dg2_nocovar.1000 )
+
+pne1000 = ggplot( aes(x = as.Date( date_decimal( time)), y = y,  ymin = ymin, ymax = ymax
+	, col = as.factor(analysis), fill = as.factor(analysis)
+	) 
+	, data = dne1000
+	) + 
+  geom_path(size=1.5) +  
+  labs(x='', col = "Analysis", fill = "Analysis") + 
+  ylab('Effective population size' ) + 
+  geom_path(data = dne1000 , aes(x = as.Date( date_decimal( time)), y = ymax), alpha = 0.6, size = 1, linetype = "dashed")+
+  geom_path(data = dne1000 , aes(x = as.Date( date_decimal( time)), y = ymin), alpha = 0.6, size = 1, linetype = "dashed")+
+  geom_ribbon( alpha = .25) +
+  theme_minimal() + 
+  theme(legend.position='top',panel.grid.minor = element_blank())+
+  scale_x_date(date_breaks = "1 month", date_labels = '%b', 
+               limits = c(min(datesdf$dates) - 7, max(datesdf$dates) + 7))+
+  theme(axis.text=element_text(size=12),axis.title=element_text(size=14))  +
+  scale_color_manual(values = c("#1b9e77", "#7570b3"))+
+  scale_fill_manual(values = c("#1b9e77", "#7570b3"))+
+  annotate("rect", xmin=as.Date("2020-03-23"), xmax=min(as.Date("2020-05-12"), max(datesdf$dates) + 7), ymin=0, ymax=Inf, alpha = 0.02512, fill = "red", col = "red")+
+  theme(plot.title = element_text(hjust = 0.5, size=18), legend.position='top', legend.title =element_text(size=16),  legend.text = element_text(size=12), legend.key.size = unit(1, "cm"))  + 
+  scale_y_log10() 
+pne1000
+
+
 # growth rate 
 fns = list.files( path= 'g2', patt = paste0('^.*\\.', bestlag, '\\.rds$'), full.name=TRUE )	
 nemat = sapply( fns, function(fn){
@@ -297,4 +349,5 @@ pgr = ggplot( aes(x = as.Date( date_decimal( time)), y = y,  ymin = ymin, ymax =
   scale_color_manual(values = c("#1b9e77", "#7570b3"))+
   scale_fill_manual(values = c("#1b9e77", "#7570b3"))+
   annotate("rect", xmin=as.Date("2020-03-23"), xmax=min(as.Date("2020-05-12"), max(datesdf$dates) + 7), ymin=-Inf, ymax=Inf, alpha = 0.02512, fill = "red", col = "red")
+
 
