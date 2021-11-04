@@ -2,7 +2,6 @@ library( ape )
 library( lubridate )
 library( glue )
 library( mlesky )
-source( '/home/erik/git/mlesky/R/mlesky.R' )
 library( treedater ) 
 
 LAGS = seq(-28, 28, by=7)
