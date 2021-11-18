@@ -11,12 +11,12 @@ dev.off()
 
 fit=as.list(rep(NA,3))
 for (m in c(1,2,3)) {
-fit[[m]]=mlskygrid(t,res=20,tau=NULL,tau_lower = 0.001,tau_upper = 10000,model = m,ncpu=6)
+  fit[[m]]=mlskygrid(t,res=20,tau=NULL,tau_lower = 0.001,tau_upper = 10000,model = m,ncpu=6)
 }
 
 pdf('simuResult.pdf',7,7)
 par(mfrow=c(3,1))
 for (m in c(2,3,1)) {
-plot(fit[[m]])
+  plot(fit[[m]],ylim=c(0,50),logy = F)
 }
 dev.off()

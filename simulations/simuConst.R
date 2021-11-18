@@ -16,6 +16,6 @@ pdf('simuConstResult.pdf',7,10)
 par(mfrow=c(3,3))
 for (res in c(5,20,50)) for (tau in c(1,10,20)) {
 fit=mlskygrid(t,res=res,tau=tau,model = 2,ncpu=6)
-plot(fit)
+plot(fit,logy = F,ylim=c(0,100))
 }
 dev.off()
