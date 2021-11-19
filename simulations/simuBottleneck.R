@@ -22,3 +22,10 @@ plot(tree,show.tip.label = F)
 axisPhylo(1,backward = F)
 plot(fit)
 dev.off()
+
+
+distance=function(alphaFun,fit) {
+  mean((fit$ne-alphaFun(fit$time+max(sampleDates)))^2)
+}
+
+print(distance(alphaFun,fit))

@@ -20,3 +20,14 @@ for (m in c(2,3,1)) {
   plot(fit[[m]],ylim=c(0,50),logy = F)
 }
 dev.off()
+
+distance=function(alphaFun,fit) {
+  mean((fit$ne-alphaFun(fit$time+max(sampleDates)))^2)
+}
+
+distances=c()
+for (m in c(2,3,1)) {
+  distances=c(distances,distance(alphaFun,fit[[m]]))
+}
+print(distances)
+
