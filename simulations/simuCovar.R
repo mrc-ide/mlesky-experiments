@@ -7,7 +7,7 @@ for (b in seq(1,length(betas),1)) {
   set.seed(b)
   print(b)
   x=seq(1990,2020,1/12)#monthly
-  driver=-((x-2005))^2/200+0.5
+  driver=(-((x-2005))^2/200+0.5)*4
   sigma=(floor((b-1)/10)+1)*0.2
   rho=driver+rnorm(length(driver),0,sigma)
   ne=rep(10,length(x))
@@ -16,7 +16,7 @@ for (b in seq(1,length(betas),1)) {
   alphaFun=function(newx){approx(x,ne,newx,rule=2)$y}
   
   sampleDates=seq(2000,2020,0.1)
-  tree=simCoal(sampleDates,alphaFun,alphaMin = max(1,min(ne)))
+  tree=simCoal(sampleDates,alphaFun,alphaMin = 1)
   
   if (b==11) {
     pdf('simuCovar.pdf',7,10)
@@ -33,7 +33,7 @@ for (b in seq(1,length(betas),1)) {
   colnames(covar)<-c('time','var')
   covar=as.data.frame(covar)
   sampleTimes=tree$root.time+dist.nodes(tree)[Ntip(tree)+1,]
-  fit=mlskygrid(tree,res=30,tau=10,model = 2,ncpu=6,sampleTimes=sampleTimes,formula=~var,data=covar,formula_order=2)
+  fit=mlskygrid(tree,res=30,tau=10,model = 2,ncpu=6,sampleTimes=sampleTimes,formula=~var,data=covar,formula_order=1)
   betas[b]=fit$beta
   sigmas[b]=sigma
 }
@@ -41,3 +41,8 @@ for (b in seq(1,length(betas),1)) {
 pdf('simuCovar2.pdf',10,10)
 boxplot(betas~sigmas,ylab='Association coefficient (beta)',xlab='Noise in growth rate relative to the covariate data',outline=F)
 dev.off()
+
+plot(fit$time,fit$ne,type='l')
+plot(fit$time,fit$growthrate,type='l')
+plot(x,driver,type='l')
+print(fit$beta)
