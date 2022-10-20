@@ -5,10 +5,9 @@ library( glue )
 ncpu = 8
 rhcolour = '#DD6200' 
 
-md <- read.csv( 'Google _mobility-UK12June2022.csv', stringsAs=FALSE )
+md <- read.csv( 'Google_mobility-UK12June2022.csv', stringsAs=FALSE )
 md$date <- dmy( md$date ) 
 
-readRDS( 'sampler1_B.1.1.7_2021-02-13_10_dated_trees.rds' ) -> tds
 trees <- readRDS( 'b117-dated_trees.rds' )
 
 
@@ -80,7 +79,6 @@ if (TRUE)
 		.fitmlesky( lag )
 }
 
-lags <- seq( -15, 36, by = 3 )
 betas <- sapply( lags , function( lag ){
 	f = readRDS( glue('b117.1-fit-lag{lag}.rds' ) ) 
 	f$beta_ci['y', ] 
