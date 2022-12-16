@@ -28,6 +28,7 @@ pdf('simuConstResult.pdf',7,10)
 par(mfrow=c(3,3))
 for (i in 1:length(fits)) {
 plot(fits[[i]],logy = F,ylim=c(0,100),xlim=c(1980,2020))
+lines(c(1980,2020),c(20,20),lty='dashed')
 }
 dev.off()
 system('open simuConstResult.pdf')
