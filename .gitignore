@@ -1,2 +1,7 @@
-
 *.pdf
+.Rproj.user
+mlesky-experiments.Rproj
+error_plots/
+coverage_plots/
+old/
+tables/
