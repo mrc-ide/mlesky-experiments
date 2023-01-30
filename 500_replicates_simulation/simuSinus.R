@@ -10,7 +10,7 @@ sinusFun=function(x){sin(x)*10+12}
 
 # IMPORTANT: Begin skipping the lines below if you have loaded the environment (RData file) previously
 t200_sinus_trees = simulate_ntrees(sampleDates_200, sinusFun)
-t50_sinus_trees = simulate_ntrees(sampleDates_50, sinusFun)
+t50_sinus_trees = simulate_ntrees(sampleDates_50, sinusFun) # to use same trees in `resTauTables.R`: saveRDS(t50_sinus_trees, file = "500_replicates_simulation/env/t50_sinus_trees.rds")
 t20_sinus_trees = simulate_ntrees(sampleDates_20, sinusFun)
 
 t200_sinus_m1 = get_nsim_estimates(t200_sinus_trees, sampleDates_200, sinusFun, 1, "sinus/sinus_t200_m1.png", "sinus/sinus_t200_m1_mae.png", "sinus/sinus_t200_m1_rmse.png")
@@ -50,7 +50,7 @@ t50_sinus_models_err = compare_err_models(t50_sinus_m1[[9]], t50_sinus_m2[[9]], 
 t20_sinus_models_err = compare_err_models(t20_sinus_m1[[9]], t20_sinus_m2[[9]], t20_sinus_m3[[9]], t20_sinus_m1[[10]], t20_sinus_m2[[10]], t20_sinus_m3[[10]], t20_sinus_m1[[8]], "comp_models/mae/sinus_t20.png", "comp_models/rmse/sinus_t20.png")
 
 # Sina/violin combined plot
-tx_sinus_err_models_all <- compare_err_models_combine_all(t200_sinus_models_err[[3]], t50_sinus_models_err[[3]], t20_sinus_models_err[[3]], t200_sinus_models_err[[4]], t50_sinus_models_err[[4]], t20_sinus_models_err[[4]], "comp_models/mae/sinus_diff_models_COMBINED.png", "comp_models/rmse/sinus_diff_models_COMBINED.png")
+tx_sinus_err_models_all <- compare_err_models_combine_all(t200_sinus_models_err[[3]], t50_sinus_models_err[[3]], t20_sinus_models_err[[3]], t200_sinus_models_err[[4]], t50_sinus_models_err[[4]], t20_sinus_models_err[[4]], "comp_models/mae/sinus_diff_models_COMBINED.pdf", "comp_models/rmse/sinus_diff_models_COMBINED.pdf")
 
 # compare error considering different sample sizes for same function and model
 tx_sinus_skykappa_err = compare_err_same_model_diff_samp_size(t200_sinus_m1[[9]], t50_sinus_m1[[9]], t20_sinus_m1[[9]], t200_sinus_m1[[10]], t50_sinus_m1[[10]], t20_sinus_m1[[10]], t200_sinus_m1[[8]], "comp_models/mae/sinus_diff_samp_skykappa.png", "comp_models/rmse/sinus_diff_samp_skykappa.png")
@@ -58,7 +58,7 @@ tx_sinus_skygrid_err = compare_err_same_model_diff_samp_size(t200_sinus_m2[[9]],
 tx_sinus_skygrowth_err = compare_err_same_model_diff_samp_size(t200_sinus_m3[[9]], t50_sinus_m3[[9]], t20_sinus_m3[[9]], t200_sinus_m3[[10]], t50_sinus_m3[[10]], t20_sinus_m3[[10]], t200_sinus_m3[[8]], "comp_models/mae/sinus_diff_samp_skygrowth.png", "comp_models/rmse/sinus_diff_samp_skygrowth.png")
 
 # Sina/violin combined plot
-tx_sinus_err_all <- compare_err_same_model_diff_samp_size_combine_all(tx_sinus_skykappa_err[[3]], tx_sinus_skygrid_err[[3]], tx_sinus_skygrowth_err[[3]], tx_sinus_skykappa_err[[4]], tx_sinus_skygrid_err[[4]], tx_sinus_skygrowth_err[[4]], "comp_models/mae/sinus_diff_samp_COMBINED.png", "comp_models/rmse/sinus_diff_samp_COMBINED.png")
+tx_sinus_err_all <- compare_err_same_model_diff_samp_size_combine_all(tx_sinus_skykappa_err[[3]], tx_sinus_skygrid_err[[3]], tx_sinus_skygrowth_err[[3]], tx_sinus_skykappa_err[[4]], tx_sinus_skygrid_err[[4]], tx_sinus_skygrowth_err[[4]], "comp_models/mae/sinus_diff_samp_COMBINED.pdf", "comp_models/rmse/sinus_diff_samp_COMBINED.pdf")
 
 end <- Sys.time()
 total_time <- as.numeric (end - start, units = "mins")

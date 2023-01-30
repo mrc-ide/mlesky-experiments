@@ -5,3 +5,4 @@ error_plots/
 coverage_plots/
 old/
 tables/
+.Rhistory

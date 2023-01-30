@@ -50,7 +50,7 @@ t50_const_models_err = compare_err_models(t50_const_m1[[9]], t50_const_m2[[9]], 
 t20_const_models_err = compare_err_models(t20_const_m1[[9]], t20_const_m2[[9]], t20_const_m3[[9]], t20_const_m1[[10]], t20_const_m2[[10]], t20_const_m3[[10]], t20_const_m1[[8]], "comp_models/mae/const_t20.png", "comp_models/rmse/const_t20.png")
 
 # Sina/violin combined plot
-tx_const_err_models_all <- compare_err_models_combine_all(t200_const_models_err[[3]], t50_const_models_err[[3]], t20_const_models_err[[3]], t200_const_models_err[[4]], t50_const_models_err[[4]], t20_const_models_err[[4]], "comp_models/mae/const_diff_models_COMBINED.png", "comp_models/rmse/const_diff_models_COMBINED.png")
+tx_const_err_models_all <- compare_err_models_combine_all(t200_const_models_err[[3]], t50_const_models_err[[3]], t20_const_models_err[[3]], t200_const_models_err[[4]], t50_const_models_err[[4]], t20_const_models_err[[4]], "comp_models/mae/const_diff_models_COMBINED.pdf", "comp_models/rmse/const_diff_models_COMBINED.pdf")
 
 # compare error considering different sample sizes for same function and model
 tx_const_skykappa_err = compare_err_same_model_diff_samp_size(t200_const_m1[[9]], t50_const_m1[[9]], t20_const_m1[[9]], t200_const_m1[[10]], t50_const_m1[[10]], t20_const_m1[[10]], t200_const_m1[[8]], "comp_models/mae/const_diff_samp_skykappa.png", "comp_models/rmse/const_diff_samp_skykappa.png")
@@ -58,7 +58,7 @@ tx_const_skygrid_err = compare_err_same_model_diff_samp_size(t200_const_m2[[9]],
 tx_const_skygrowth_err = compare_err_same_model_diff_samp_size(t200_const_m3[[9]], t50_const_m3[[9]], t20_const_m3[[9]], t200_const_m3[[10]], t50_const_m3[[10]], t20_const_m3[[10]], t200_const_m3[[8]], "comp_models/mae/const_diff_samp_skygrowth.png", "comp_models/rmse/const_diff_samp_skygrowth.png")
 
 # Sina/violin combined plot
-tx_const_err_all <- compare_err_same_model_diff_samp_size_combine_all(tx_const_skykappa_err[[3]], tx_const_skygrid_err[[3]], tx_const_skygrowth_err[[3]], tx_const_skykappa_err[[4]], tx_const_skygrid_err[[4]], tx_const_skygrowth_err[[4]], "comp_models/mae/const_diff_samp_COMBINED.png", "comp_models/rmse/const_diff_samp_COMBINED.png")
+tx_const_err_all <- compare_err_same_model_diff_samp_size_combine_all(tx_const_skykappa_err[[3]], tx_const_skygrid_err[[3]], tx_const_skygrowth_err[[3]], tx_const_skykappa_err[[4]], tx_const_skygrid_err[[4]], tx_const_skygrowth_err[[4]], "comp_models/mae/const_diff_samp_COMBINED.pdf", "comp_models/rmse/const_diff_samp_COMBINED.pdf")
 
 end <- Sys.time()
 total_time <- as.numeric (end - start, units = "mins")

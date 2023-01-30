@@ -61,7 +61,7 @@ t50_bottle_models_err = compare_err_models(t50_bottle_m1[[9]], t50_bottle_m2[[9]
 t20_bottle_models_err = compare_err_models(t20_bottle_m1[[9]], t20_bottle_m2[[9]], t20_bottle_m3[[9]], t20_bottle_m1[[10]], t20_bottle_m2[[10]], t20_bottle_m3[[10]], t20_bottle_m1[[8]], "comp_models/mae/bottle_t20.png", "comp_models/rmse/bottle_t20.png")
 
 # Sina/violin combined plot
-tx_bottle_err_models_all <- compare_err_models_combine_all(t200_bottle_models_err[[3]], t50_bottle_models_err[[3]], t20_bottle_models_err[[3]], t200_bottle_models_err[[4]], t50_bottle_models_err[[4]], t20_bottle_models_err[[4]], "comp_models/mae/bottle_diff_models_COMBINED.png", "comp_models/rmse/bottle_diff_models_COMBINED.png")
+tx_bottle_err_models_all <- compare_err_models_combine_all(t200_bottle_models_err[[3]], t50_bottle_models_err[[3]], t20_bottle_models_err[[3]], t200_bottle_models_err[[4]], t50_bottle_models_err[[4]], t20_bottle_models_err[[4]], "comp_models/mae/bottle_diff_models_COMBINED.pdf", "comp_models/rmse/bottle_diff_models_COMBINED.pdf")
 
 # compare error considering different sample sizes for same function and model
 tx_bottle_skykappa_err = compare_err_same_model_diff_samp_size(t200_bottle_m1[[9]], t50_bottle_m1[[9]], t20_bottle_m1[[9]], t200_bottle_m1[[10]], t50_bottle_m1[[10]], t20_bottle_m1[[10]], t200_bottle_m1[[8]], "comp_models/mae/bottle_diff_samp_skykappa.png", "comp_models/rmse/bottle_diff_samp_skykappa.png")
@@ -69,7 +69,7 @@ tx_bottle_skygrid_err = compare_err_same_model_diff_samp_size(t200_bottle_m2[[9]
 tx_bottle_skygrowth_err = compare_err_same_model_diff_samp_size(t200_bottle_m3[[9]], t50_bottle_m3[[9]], t20_bottle_m3[[9]], t200_bottle_m3[[10]], t50_bottle_m3[[10]], t20_bottle_m3[[10]], t200_bottle_m3[[8]], "comp_models/mae/bottle_diff_samp_skygrowth.png", "comp_models/rmse/bottle_diff_samp_skygrowth.png")
 
 # Sina/violin combined plot
-tx_bottle_err_all <- compare_err_same_model_diff_samp_size_combine_all(tx_bottle_skykappa_err[[3]], tx_bottle_skygrid_err[[3]], tx_bottle_skygrowth_err[[3]], tx_bottle_skykappa_err[[4]], tx_bottle_skygrid_err[[4]], tx_bottle_skygrowth_err[[4]], "comp_models/mae/bottle_diff_samp_COMBINED.png", "comp_models/rmse/bottle_diff_samp_COMBINED.png")
+tx_bottle_err_all <- compare_err_same_model_diff_samp_size_combine_all(tx_bottle_skykappa_err[[3]], tx_bottle_skygrid_err[[3]], tx_bottle_skygrowth_err[[3]], tx_bottle_skykappa_err[[4]], tx_bottle_skygrid_err[[4]], tx_bottle_skygrowth_err[[4]], "comp_models/mae/bottle_diff_samp_COMBINED.pdf", "comp_models/rmse/bottle_diff_samp_COMBINED.pdf")
 
 end <- Sys.time()
 total_time <- as.numeric (end - start, units = "mins")
