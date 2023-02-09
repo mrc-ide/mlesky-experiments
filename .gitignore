@@ -1,4 +1,7 @@
 *.pdf
+*.pbs
+*.zip
+*.csv
 .Rproj.user
 mlesky-experiments.Rproj
 error_plots/
@@ -6,3 +9,8 @@ coverage_plots/
 old/
 tables/
 .Rhistory
+.RData
+500_replicates_simulation/tests.R
+500_replicates_simulation/env/hpc/
+500_replicates_simulation/old/
+trajectories*

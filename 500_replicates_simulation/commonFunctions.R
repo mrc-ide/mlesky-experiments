@@ -14,6 +14,7 @@ library(reshape2)
 #library(Metrics)
 library(stringr)
 library(ggforce)
+library(glue)
 
 ncpu = 7
 nsim = 500
@@ -22,10 +23,8 @@ scale4FUN = function(x) sprintf("%.4f", x) # format to 4 decimal places
 
 set.seed(3)
 #set.seed(425672)
-sampleDates_200 =seq(2000,2020,0.1)
-sampleDates_50 =seq(2000,2020,0.4)
-sampleDates_20 =seq(2004,2014,0.5)
-# sampleDates_20 =seq(2005,2010,0.25)
+sampleDates_200 =seq(-20,0,0.1) #2000,2020,0.1
+sampleDates_100 =seq(-20,0,0.2) #2000,2020,0.2
 
 # Simulate coalescent trees using the simCoal method implemented in mlesky
 simulate_ntrees <- function(sampDates, alphaFun) {
@@ -49,15 +48,13 @@ simulate_ntrees <- function(sampDates, alphaFun) {
 # (x) rmse_df: Root mean squared error (RMSE) for each simulation index
 # Also plot the coverage probability over time to `coverage_plots` folder that is appended to the supplied `out_path`
 # and print most of these returned values on the screen in the end of execution
-get_nsim_estimates <- function(sim_trees, sampDates, alphaFun, model, out_path_cov_prob, out_path_error, out_path_rmse) {
+get_nsim_estimates <- function(sim_trees, alphaFun, model, res_choice, out_path_cov_prob, out_path_error, out_path_rmse) { #sampDates
   print("Fit")
-  sts = sampDates; names(sts) = sim_trees[[1]]$tip.label
-  fit = pbmclapply(X=sim_trees, FUN=mlskygrid, sampleTimes=sts, res=NULL,tau=NULL,tau_lower = 0.001,tau_upper = 1000,model = model,ncpu=ncpu)
+  #sts = sampDates; names(sts) = sim_trees[[1]]$tip.label
+  fit = pbmclapply(X=sim_trees, FUN=mlskygrid, res=res_choice,tau=NULL,tau_lower = 0.001,tau_upper = 1000,model = model,ncpu=ncpu) #sampleTimes=sts
   pboot = pboot_ne = list()
   for(i in 1:length(sim_trees)){
     print(paste("===",i,"==="))
-    #print(fit[[i]]$time)
-    #print(fit[[i]]$ne)
     if(length(fit[[i]]$time) <= 2) {
       next
     }
@@ -66,7 +63,8 @@ get_nsim_estimates <- function(sim_trees, sampDates, alphaFun, model, out_path_c
     pboot_ne[[i]]$nelb = pboot[[i]]$ne_ci[,1]
     pboot_ne[[i]]$ne = pboot[[i]]$ne_ci[,2]
     pboot_ne[[i]]$neub = pboot[[i]]$ne_ci[,3]
-    pboot_ne[[i]]$time = pboot[[i]]$time; pboot_ne[[i]]$time = as.data.frame(pboot_ne[[i]]$time)
+    pboot_ne[[i]]$time = pboot[[i]]$time
+    pboot_ne[[i]]$time = as.data.frame(pboot_ne[[i]]$time)
     #pboot_ne[[i]]$true_ne = alphaFun(pboot_ne[[i]]$time); #pboot_ne[[i]]$true_ne = as.data.frame(pboot_ne[[i]]$true_ne)
     pboot_ne[[i]] = cbind(pboot_ne[[i]]$time, pboot_ne[[i]]$ne_ci) #pboot_ne[[i]]$true_ne
     colnames(pboot_ne[[i]]) = c("time","nelb","est_ne","neub") #"true_ne"
@@ -158,7 +156,7 @@ get_nsim_estimates <- function(sim_trees, sampDates, alphaFun, model, out_path_c
   p1 = ggplot(data=cov_prob_over_time_df, aes(x=time, y=cov_prob_over_time)) + 
     geom_line(color="steelblue") + geom_point(color="steelblue") + coord_cartesian(ylim = c(0,1)) + 
     scale_x_continuous(labels=scaleFUN, breaks = common_time_ax) + #scale_y_continuous(expand = c(0, 0)) +
-    labs(x = "Time axis", y = paste("Coverage probability for",length(sim_trees),"simulations"), caption = paste0("Overall coverage probability = ", scaleFUN(cov_prob_avg))) +
+    labs(x = "Time since most recent sample", y = paste("Coverage probability for",length(sim_trees),"simulations"), caption = paste0("Overall coverage probability = ", scaleFUN(cov_prob_avg))) +
     theme_bw() + theme(plot.title = element_text(hjust=0.5), plot.caption = element_text(hjust=1),
                        axis.text.x = element_text(size=7, angle = 90, vjust = 0.5, hjust=1))
 
@@ -197,7 +195,7 @@ compare_cov_prob_models <- function(m1_cp, m2_cp, m3_cp, common_t_ax, out_path) 
     geom_line() + geom_point() + scale_color_manual(name = "Model", values = c("steelblue", "darkred", "darkolivegreen")) +
     coord_cartesian(ylim = c(0,1)) +
     scale_x_continuous(labels=scaleFUN, breaks = common_t_ax) +
-    labs(x = "Time axis", y = "Coverage probability for 500 simulations") +
+    labs(x = "Time since most recent sample", y = "Coverage probability") + #for 500 simulations
     theme_bw() + theme(plot.title = element_text(hjust=0.5),axis.text.x = element_text(size=7, angle = 90, vjust = 0.5, hjust=1))
   
   print(paste0("Coverage probability for each time point plotted to: ",cp_out_pref,out_path))
@@ -207,19 +205,19 @@ compare_cov_prob_models <- function(m1_cp, m2_cp, m3_cp, common_t_ax, out_path) 
 }
 
 # Compare coverage probability estimates for the same model using different sample sizes to see precision loss when dropping tips
-compare_same_model_diff_samp_size <- function(cp_more_tips, cp_intermed_tips, cp_less_tips, common_t_ax, out_path) {
+compare_same_model_diff_samp_size <- function(cp_more_tips, cp_intermed_tips, common_t_ax, out_path) {
   cp_out_pref = "coverage_plots/"
   system(paste0("mkdir -p ",cp_out_pref,dirname(out_path)))
   
-  cp_more_tips$sample_size = 200; cp_intermed_tips$sample_size = 50; cp_less_tips$sample_size = 20
-  cp_comb = rbind(cp_more_tips, cp_intermed_tips, cp_less_tips)
-  cp_comb$sample_size = factor(cp_comb$sample_size, levels=c(200, 50, 20))
+  cp_more_tips$sample_size = 200; cp_intermed_tips$sample_size = 100
+  cp_comb = rbind(cp_more_tips, cp_intermed_tips)
+  cp_comb$sample_size = factor(cp_comb$sample_size, levels=c(200, 100))
   
   p = ggplot(cp_comb, aes(time, cov_prob_over_time, color = sample_size)) + 
     geom_line() + geom_point() + scale_color_manual(name = "Sample size", values = c("steelblue", "darkred", "darkolivegreen")) +
     coord_cartesian(ylim = c(0,1)) +
     scale_x_continuous(labels=scaleFUN, breaks = common_t_ax) +
-    labs(x = "Time axis", y = "Coverage probability for 500 simulations") +
+    labs(x = "Time since most recent sample", y = "Coverage probability") + #for 500 simulations
     theme_bw() + theme(plot.title = element_text(hjust=0.5),axis.text.x = element_text(size=7, angle = 90, vjust = 0.5, hjust=1))
   
   print(paste0("Coverage probability for each time point plotted to: ",cp_out_pref,out_path))
@@ -267,19 +265,19 @@ compare_err_models <- function(m1_mae, m2_mae, m3_mae, m1_rmse, m2_rmse, m3_rmse
 }
 
 # Combine all 9 estimates horizontally into a sina/violin plot (x-axis = model)
-compare_err_models_combine_all <- function(mae_comb_m1, mae_comb_m2, mae_comb_m3, rmse_comb_m1, rmse_comb_m2, rmse_comb_m3, out_path_mae, out_path_rmse) {
+compare_err_models_combine_all <- function(mae_comb_m1, mae_comb_m2, rmse_comb_m1, rmse_comb_m2, out_path_mae, out_path_rmse) {
 	
 	err_out_pref = "error_plots/"
 	system(paste0("mkdir -p ",err_out_pref,dirname(out_path_mae)))
 	system(paste0("mkdir -p ",err_out_pref,dirname(out_path_rmse)))
 	
-	mae_comb_m1$sample_size <- 200; mae_comb_m2$sample_size <- 50; mae_comb_m3$sample_size <- 20; 
-	rmse_comb_m1$sample_size <- 200; rmse_comb_m2$sample_size <- 50; rmse_comb_m3$sample_size <- 20; 
-	mae_comb_all <- rbind(mae_comb_m1, mae_comb_m2, mae_comb_m3)
-	rmse_comb_all <- rbind(rmse_comb_m1, rmse_comb_m2, rmse_comb_m3)
+	mae_comb_m1$sample_size <- 200; mae_comb_m2$sample_size <- 100
+	rmse_comb_m1$sample_size <- 200; rmse_comb_m2$sample_size <- 100
+	mae_comb_all <- rbind(mae_comb_m1, mae_comb_m2)
+	rmse_comb_all <- rbind(rmse_comb_m1, rmse_comb_m2)
 	
-	mae_comb_all$sample_size <- factor(mae_comb_all$sample_size, levels=c(200, 50, 20))
-	rmse_comb_all$sample_size <- factor(rmse_comb_all$sample_size, levels=c(200, 50, 20))
+	mae_comb_all$sample_size <- factor(mae_comb_all$sample_size, levels=c(200, 100))
+	rmse_comb_all$sample_size <- factor(rmse_comb_all$sample_size, levels=c(200, 100))
 	
 	p1 = ggplot(mae_comb_all, aes(x=model, y=mean_abs_error, color=sample_size)) + 
 		geom_violin() + geom_sina(size=0.05) +
@@ -306,16 +304,16 @@ compare_err_models_combine_all <- function(mae_comb_m1, mae_comb_m2, mae_comb_m3
 	return(list(mae_comb_all, mae_comb_all))
 }
 
-compare_err_same_model_diff_samp_size <- function(mae_more_tips, mae_intermed_tips, mae_less_tips, rmse_more_tips, rmse_intermed_tips, rmse_less_tips, common_t_ax, out_path_mae, out_path_rmse) {
+compare_err_same_model_diff_samp_size <- function(mae_more_tips, mae_intermed_tips, rmse_more_tips, rmse_intermed_tips, common_t_ax, out_path_mae, out_path_rmse) {
 	err_out_pref = "error_plots/"
 	system(paste0("mkdir -p ",err_out_pref,dirname(out_path_mae)))
 	system(paste0("mkdir -p ",err_out_pref,dirname(out_path_rmse)))
 	
-	mae_more_tips$sample_size = 200; mae_intermed_tips$sample_size = 50; mae_less_tips$sample_size = 20
-	mae_comb = rbind(mae_more_tips, mae_intermed_tips, mae_less_tips)
-	mae_comb$sample_size = factor(mae_comb$sample_size, levels=c(200, 50, 20))
+	mae_more_tips$sample_size = 200; mae_intermed_tips$sample_size = 100
+	mae_comb = rbind(mae_more_tips, mae_intermed_tips)
+	mae_comb$sample_size = factor(mae_comb$sample_size, levels=c(200, 100))
 	
-	fct_lbls <- as_labeller(c(`200`="n=200",`50`="n=50",`20`="n=20"))
+	fct_lbls <- as_labeller(c(`200`="n=200",`100`="n=100"))
 	
 	p1 = ggplot(mae_comb, aes(x=sample_size, y=mean_abs_error, color=sample_size)) +
 		geom_violin() + geom_sina(size=0.4) + geom_point(size=0.7) +
@@ -326,9 +324,9 @@ compare_err_same_model_diff_samp_size <- function(mae_more_tips, mae_intermed_ti
 	print(paste0("Mean absolute error (MAE) comparison for same model and different sample sizes plotted to: ",err_out_pref,out_path_mae))
 	ggsave(paste0(err_out_pref,out_path_mae), plot=p1, units="in", width=3.5, height=2, dpi=600)
 	
-	rmse_more_tips$sample_size = 200; rmse_intermed_tips$sample_size = 50; rmse_less_tips$sample_size = 20
-	rmse_comb = rbind(rmse_more_tips, rmse_intermed_tips, rmse_less_tips)
-	rmse_comb$sample_size = factor(rmse_comb$sample_size, levels=c(200, 50, 20))
+	rmse_more_tips$sample_size = 200; rmse_intermed_tips$sample_size = 100
+	rmse_comb = rbind(rmse_more_tips, rmse_intermed_tips)
+	rmse_comb$sample_size = factor(rmse_comb$sample_size, levels=c(200, 100))
 	
 	p2 = ggplot(rmse_comb, aes(x=sample_size, y=rmse_val, color=sample_size)) + 
 		geom_violin() + geom_sina(size=0.4) + geom_point(size=0.7) +
@@ -387,14 +385,12 @@ compare_err_same_model_diff_samp_size_combine_all <- function(mae_comb_m1, mae_c
 
 # Since estimates for different sample sizes have different time axis, get ranges and approx values to get same time axis for all to fill table
 # This way we can have only 1 table per function instead of 3
-generate_summary_table_cov_prob <- function(alphaFun, t200_m1, t200_m2, t200_m3, t50_m1, t50_m2, t50_m3, t20_m1, t20_m2, t20_m3, out_path_cp) {
-  # 1 = n200+skykappa; 2 = n200+skygrid; 3 = n200+skygrowth; 4 = n50+skykappa; 5 = n50+skygrid; 6 = n50+skygrowth
-  # 7 = n20+skykappa; 8 = n20+skygrid; 9 = n20+skygrowth
+generate_summary_table_cov_prob <- function(alphaFun, t200_m1, t200_m2, t200_m3, t100_m1, t100_m2, t100_m3, out_path_cp) {
+  # 1 = n200+skykappa; 2 = n200+skygrid; 3 = n200+skygrowth; 4 = n100+skykappa; 5 = n100+skygrid; 6 = n100+skygrowth
   t200_m1$id = 1; t200_m2$id = 2; t200_m3$id = 3;
-  t50_m1$id = 4; t50_m2$id = 5; t50_m3$id = 6;
-  t20_m1$id = 7; t20_m2$id = 8; t20_m3$id = 9;
+  t100_m1$id = 4; t100_m2$id = 5; t100_m3$id = 6;
   
-  all_estims = rbind(t200_m1, t200_m2, t200_m3, t50_m1, t50_m2, t50_m3, t20_m1, t20_m2, t20_m3)
+  all_estims = rbind(t200_m1, t200_m2, t200_m3, t100_m1, t100_m2, t100_m3)
   
   # Get boundaries for common time axis across different sample sizes
   first_coal_sims = all_estims %>% group_by(id) %>% filter(row_number()==1)
@@ -426,8 +422,9 @@ generate_summary_table_cov_prob <- function(alphaFun, t200_m1, t200_m2, t200_m3,
   # View(cov_prob)
   cov_prob_min = cov_prob %>% select(time, cover_table, n_sim, id)
   cov_prob_min_splt = split(cov_prob_min, cov_prob_min$id)
+  print(length(cov_prob_min_splt))
   cov_prob_min_id = cov_prob_avg = cov_prob_over_time = cov_prob_over_time_df = list()
-  for(i in 1:9) {
+  for(i in 1:6) {
     cov_prob_min_id[[i]] = dcast(cov_prob_min_splt[[i]],time~n_sim, value.var = "cover_table")
     cov_prob_matrix = as.matrix(cov_prob_min_id[[i]])
     rownames(cov_prob_matrix) = cov_prob_matrix[,1]
@@ -451,26 +448,86 @@ generate_summary_table_cov_prob <- function(alphaFun, t200_m1, t200_m2, t200_m3,
   cov_prob_all = Reduce(cbind, cov_prob_over_time_df)
   to_del <- seq(3, ncol(cov_prob_all), 2)
   cov_prob_all_f <-  cov_prob_all[,-to_del]
-  colnames(cov_prob_all_f) = c("time","n200+skykappa","n200+skygrid","n200+skygrowth","n50+skykappa","n50+skygrid","n50+skygrowth",
-                               "n20+skykappa","n20+skygrid","n20+skygrowth")
+  colnames(cov_prob_all_f) = c("time","n200+skykappa","n200+skygrid","n200+skygrowth","n100+skykappa","n100+skygrid","n100+skygrowth")
   
   summ_cp_pref = "tables/"
   system(paste0("mkdir -p ",summ_cp_pref))
-  write.csv(cov_prob_all_f, file=paste0(summ_cp_pref,out_path_cp), quote=FALSE, row.names=FALSE)
+  write.table(format(cov_prob_all_f,digits=4), file=paste0(summ_cp_pref,out_path_cp), quote=FALSE, row.names=TRUE, col.names=NA, sep=",")
   return(list(cov_prob_all_f, cov_prob_avg))
 }
 
-generate_summary_table_rmse <- function(alphaFun, t200_m1, t200_m2, t200_m3, t50_m1, t50_m2, t50_m3, t20_m1, t20_m2, t20_m3, out_path_rmse) {
+generate_summary_table_rmse <- function(alphaFun, t200_m1, t200_m2, t200_m3, t100_m1, t100_m2, t100_m3, out_path_rmse) {
   t200_m1$id = 1; t200_m2$id = 2; t200_m3$id = 3;
-  t50_m1$id = 4; t50_m2$id = 5; t50_m3$id = 6;
-  t20_m1$id = 7; t20_m2$id = 8; t20_m3$id = 9;
-  all_estims = rbind(t200_m1, t200_m2, t200_m3, t50_m1, t50_m2, t50_m3, t20_m1, t20_m2, t20_m3)
-  rmse_stat_df = all_estims %>% group_by(id) %>% summarise(avg_rmse = mean(rmse_val), median_rmse = median(rmse_val), iqr_mrse = IQR(rmse_val))
+  t100_m1$id = 4; t100_m2$id = 5; t100_m3$id = 6;
+  all_estims = rbind(t200_m1, t200_m2, t200_m3, t100_m1, t100_m2, t100_m3)
+  rmse_stat_df = all_estims %>% group_by(id) %>% summarise(avg_rmse = mean(rmse_val), median_rmse = median(rmse_val), iqr_rmse = IQR(rmse_val))
+  rmse_stat_df = rmse_stat_df %>% select(avg_rmse, median_rmse, iqr_rmse)
   rmse_stat_df = t(rmse_stat_df)
-  colnames(rmse_stat_df) = c("n200+skykappa","n200+skygrid","n200+skygrowth","n50+skykappa","n50+skygrid","n50+skygrowth",
-                            "n20+skykappa","n20+skygrid","n20+skygrowth")
+  colnames(rmse_stat_df) = c("n200+skykappa","n200+skygrid","n200+skygrowth","n100+skykappa","n100+skygrid","n100+skygrowth")
   summ_err_pref = "tables/"
   system(paste0("mkdir -p ",summ_err_pref))
-  write.csv(rmse_stat_df, file=paste0(summ_err_pref,out_path_rmse), quote=FALSE, row.names=FALSE)
+  write.table(format(rmse_stat_df,digits=4), file=paste0(summ_err_pref,out_path_rmse), quote=FALSE, row.names=TRUE, col.names=NA, sep=",")
   return(rmse_stat_df)
+}
+
+plot_ne_trajectories <- function(sim_out, sample_size, model, out_path) {
+	sim_out_indiv_sims <- split(sim_out[[1]], as.integer(sim_out[[1]]$n_sim))
+	sim_out_p1_ne <- list()
+	#sim_out_indiv_sims_time <- sim_out_indiv_sims_ne_ci <- 
+	sim_out_indiv_sims_time <- sim_out_indiv_sims_mlsky_obj <- list()
+	for(l in 1:length(sim_out_indiv_sims)) {
+		sim_out_indiv_sims[[l]] <- sim_out_indiv_sims[[l]] %>% select(time, nelb, est_ne, neub)
+		sim_out_indiv_sims_time[[l]] <- sim_out_indiv_sims[[l]] %>% select(time)
+		sim_out_indiv_sims_time[[l]]$time <- sim_out_indiv_sims_time[[l]][["time"]]
+		sim_out_indiv_sims_mlsky_obj[[l]] <- sim_out_indiv_sims_time[[l]]
+		sim_out_indiv_sims[[l]] <- sim_out_indiv_sims[[l]] %>% select(nelb, est_ne, neub)
+		colnames(sim_out_indiv_sims[[l]]) <- c("nelb","ne","neub")
+		#sim_out_indiv_sims_mlsky_obj[[l]] <- sim_out_indiv_sims[[l]]
+		sim_out_indiv_sims_mlsky_obj[[l]]$ne_ci <- sim_out_indiv_sims[[l]]
+		class(sim_out_indiv_sims_mlsky_obj[[l]]) <- "mlskygrid"
+		# sim_out_indiv_sims_mlsky_obj[[l]] <- c(sim_out_indiv_sims_time[[l]], sim_out_indiv_sims_ne_ci[[l]]$ne_ci)
+		#sim_out_indiv_sims_mlsky_obj[[l]] <- 
+		sim_out_p1_ne[[l]] <- plot(sim_out_indiv_sims_mlsky_obj[[l]], ggplot=TRUE, logy=FALSE) + ggplot2::ylab("Ne") + ggplot2::xlab("Time") + ggplot2::coord_cartesian(ylim=c(0,100)) + ggplot2::ggtitle(glue("{sample_size},{model}")) + theme_classic()
+		system(glue("mkdir -p {out_path}/{model}/{sample_size}"))
+		ggsave(glue("{out_path}/{model}/{sample_size}/sim_id{l}.png"), plot=sim_out_p1_ne[[l]], units="in", width=5, height=3.5, dpi=300) #6,4,600
+	}
+}
+
+plot_ne_trajectories <- function(sim_out, sample_size, model, out_path, max_v) {
+	sim_out_indiv_sims <- split(sim_out[[1]], as.integer(sim_out[[1]]$n_sim))
+	sim_out_p1_ne <- list()
+	#sim_out_indiv_sims_time <- sim_out_indiv_sims_ne_ci <- 
+	sim_out_indiv_sims_time <- sim_out_indiv_sims_mlsky_obj <- list()
+	for(l in 1:length(sim_out_indiv_sims)) {
+		sim_out_indiv_sims[[l]] <- sim_out_indiv_sims[[l]] %>% select(time, nelb, est_ne, neub)
+		sim_out_indiv_sims_time[[l]] <- sim_out_indiv_sims[[l]] %>% select(time)
+		sim_out_indiv_sims_time[[l]]$time <- sim_out_indiv_sims_time[[l]][["time"]]
+		sim_out_indiv_sims_mlsky_obj[[l]] <- sim_out_indiv_sims_time[[l]]
+		sim_out_indiv_sims[[l]] <- sim_out_indiv_sims[[l]] %>% select(nelb, est_ne, neub)
+		colnames(sim_out_indiv_sims[[l]]) <- c("nelb","ne","neub")
+		#sim_out_indiv_sims_mlsky_obj[[l]] <- sim_out_indiv_sims[[l]]
+		sim_out_indiv_sims_mlsky_obj[[l]]$ne_ci <- sim_out_indiv_sims[[l]]
+		class(sim_out_indiv_sims_mlsky_obj[[l]]) <- "mlskygrid"
+		# sim_out_indiv_sims_mlsky_obj[[l]] <- c(sim_out_indiv_sims_time[[l]], sim_out_indiv_sims_ne_ci[[l]]$ne_ci)
+		#sim_out_indiv_sims_mlsky_obj[[l]] <- 
+		sim_out_p1_ne[[l]] <- plot(sim_out_indiv_sims_mlsky_obj[[l]], ggplot=TRUE, logy=FALSE) + ggplot2::ylab("Ne") + ggplot2::xlab("Time") + ggplot2::coord_cartesian(ylim=c(0,max_v)) + ggplot2::ggtitle(glue("{sample_size},{model}")) + theme_classic()
+		system(glue("mkdir -p {out_path}/{model}/{sample_size}"))
+		ggsave(glue("{out_path}/{model}/{sample_size}/sim_id{l}.png"), plot=sim_out_p1_ne[[l]], units="in", width=5, height=3.5, dpi=300) #6,4,600
+	}
+}
+
+plot_ne_trajectories_true_ne_without_ci <- function(sim_out, sample_size, model, out_path) {
+	sim_out_indiv_sims <- split(sim_out[[2]], as.integer(sim_out[[2]]$n_sim))
+	#View(sim_out_indiv_sims[[1]])
+	sim_out_p1_ne <- list()
+	sim_out_indiv_sims_time <- sim_out_indiv_sims_mlsky_obj <- list()
+	for(l in 1:length(sim_out_indiv_sims)) {
+		sim_out_indiv_sims[[l]] <- sim_out_indiv_sims[[l]] %>% select(time, true_ne, est_ne)
+		colnames(sim_out_indiv_sims[[l]]) <- c("time","true_ne","est_ne")
+		sim_out_p1_ne[[l]] <- ggplot(sim_out_indiv_sims[[l]] , aes(x=time)) +
+			geom_line(aes(y = true_ne), color = "darkred") + 
+			geom_line(aes(y = est_ne), color = "steelblue")
+		system(glue("mkdir -p {out_path}/{model}/{sample_size}"))
+		ggsave(glue("{out_path}/{model}/{sample_size}/sim_id{l}.png"), plot=sim_out_p1_ne[[l]], units="in", width=5, height=3.5, dpi=300) #6,4,600
+	}
 }
