@@ -9,7 +9,7 @@ start <- Sys.time()
 sinusFun=function(x){sin(x)*10+12}
 
 # IMPORTANT: Begin skipping the lines below if you have loaded the environment (RData file) previously
-t200_sinus_trees = simulate_ntrees(sampleDates_200, sinusFun) #to use same trees in `resTauTablesSinus.R`: saveRDS(t200_sinus_trees, file = "500_replicates_simulation/env/t200_sinus_trees.rds")
+t200_sinus_trees = simulate_ntrees(sampleDates_200, sinusFun)
 t100_sinus_trees = simulate_ntrees(sampleDates_100, sinusFun) 
 
 #sampleDates_200
@@ -68,6 +68,7 @@ summary_sinus_rmse = generate_summary_table_rmse(sinusFun, t200_sinus_m1[[10]], 
 # If running from scratch, the line below will have all the variables generated
 system("mkdir -p 500_replicates_simulation/env/")
 save.image(file="500_replicates_simulation/env/simuSinus.RData")
+saveRDS(t200_sinus_m1, "500_replicates_simulation/env/t200_sinus_m1.rds")
 
 plot_ne_trajectories(t200_sinus_m1, "200", "skykappa", "trajectories_sinus", 100)
 plot_ne_trajectories(t200_sinus_m2, "200", "skygrid", "trajectories_sinus", 100)

@@ -20,7 +20,7 @@ bottleFun=function(x){
 }
 
 # IMPORTANT: Begin skipping the lines below if you have loaded the environment (RData file) previously
-t200_bottle_trees = simulate_ntrees(sampleDates_200, bottleFun) #to use same trees in `resTauTablesBottle.R`: saveRDS(t200_bottle_trees, file = "500_replicates_simulation/env/t200_bottle_trees.rds")
+t200_bottle_trees = simulate_ntrees(sampleDates_200, bottleFun)
 t100_bottle_trees = simulate_ntrees(sampleDates_100, bottleFun)
 
 #sampleDates_200
